@@ -8,6 +8,8 @@ import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.FirebaseApp;
+
 public class Splash_Activity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,6 +25,7 @@ public class Splash_Activity extends AppCompatActivity {
         logo.startAnimation(translate);
         logo.startAnimation(scale);
 
+        FirebaseApp.initializeApp(this);
 
         new Handler().postDelayed(() -> {
             startActivity(new Intent(Splash_Activity.this, Login_Activity.class));
