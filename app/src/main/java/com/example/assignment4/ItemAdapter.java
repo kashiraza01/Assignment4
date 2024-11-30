@@ -21,7 +21,6 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
         this.itemList = itemList;
     }
 
-    // ViewHolder class to hold individual item views
     public static class ItemViewHolder extends RecyclerView.ViewHolder {
         TextView itemNameTextView, itemQuantityTextView, itemPriceTextView;
         Button deleteButton;

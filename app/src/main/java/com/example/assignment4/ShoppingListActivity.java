@@ -9,6 +9,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.appcompat.app.AlertDialog;
 
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
@@ -28,8 +29,7 @@ public class ShoppingListActivity extends AppCompatActivity {
     private List<Item> itemList = new ArrayList<>();
     private FirebaseFirestore db;
     private CollectionReference shoppingListRef;
-    private EditText itemNameEditText, itemQuantityEditText, itemPriceEditText;
-    private Button addItemButton;
+    private View fabAddItem;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,23 +46,14 @@ public class ShoppingListActivity extends AppCompatActivity {
         itemAdapter = new ItemAdapter(itemList);
         recyclerView.setAdapter(itemAdapter);
 
-        // Initialize views for adding a new item
-        itemNameEditText = findViewById(R.id.itemNameEditText);
-        itemQuantityEditText = findViewById(R.id.itemQuantityEditText);
-        itemPriceEditText = findViewById(R.id.itemPriceEditText);
-        addItemButton = findViewById(R.id.addItemButton);
+        // Initialize Floating Action Button (FAB)
+        fabAddItem = findViewById(R.id.fabAddItem);
+        fabAddItem.setOnClickListener(v -> showAddItemDialog());
 
         // Fetch items from Firestore initially and set up real-time updates
         fetchItems();
 
-        // Set up button to add new item
-        addItemButton.setOnClickListener(v -> addItemToList());
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        // Real-time update listener to get changes from Firestore
+        // Real-time listener to get updates from Firestore
         shoppingListRef.addSnapshotListener(this, (QuerySnapshot snapshots, FirebaseFirestoreException e) -> {
             if (e != null) {
                 Toast.makeText(ShoppingListActivity.this, "Error fetching data", Toast.LENGTH_SHORT).show();
@@ -99,39 +90,43 @@ public class ShoppingListActivity extends AppCompatActivity {
                 });
     }
 
-    private void addItemToList() {
-        String itemName = itemNameEditText.getText().toString().trim();
-        String itemQuantity = itemQuantityEditText.getText().toString().trim();
-        String itemPrice = itemPriceEditText.getText().toString().trim();
+    private void showAddItemDialog() {
+        // Inflate the dialog layout
+        View dialogView = getLayoutInflater().inflate(R.layout.add_item_dialog, null);
+        EditText itemNameEditText = dialogView.findViewById(R.id.itemNameEditText);
+        EditText itemQuantityEditText = dialogView.findViewById(R.id.itemQuantityEditText);
+        EditText itemPriceEditText = dialogView.findViewById(R.id.itemPriceEditText);
+        Button saveItemButton = dialogView.findViewById(R.id.saveItemButton);
 
-        if (itemName.isEmpty() || itemQuantity.isEmpty() || itemPrice.isEmpty()) {
-            Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        // Create dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
 
-        // Create a new Item object
-        Item newItem = new Item(itemName, Integer.parseInt(itemQuantity), Double.parseDouble(itemPrice));
+        // Set button click listener
+        saveItemButton.setOnClickListener(v -> {
+            String itemName = itemNameEditText.getText().toString().trim();
+            String itemQuantity = itemQuantityEditText.getText().toString().trim();
+            String itemPrice = itemPriceEditText.getText().toString().trim();
 
-        // Add item to Firestore
-        shoppingListRef.add(newItem)
-                .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(ShoppingListActivity.this, "Item added", Toast.LENGTH_SHORT).show();
-                    itemNameEditText.setText("");
-                    itemQuantityEditText.setText("");
-                    itemPriceEditText.setText("");
-                })
-                .addOnFailureListener(e -> Toast.makeText(ShoppingListActivity.this, "Error adding item", Toast.LENGTH_SHORT).show());
-    }
+            if (itemName.isEmpty() || itemQuantity.isEmpty() || itemPrice.isEmpty()) {
+                Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-    public void deleteItem(DocumentSnapshot itemDocSnapshot) {
-        // Get document reference for the item to be deleted
-        DocumentReference itemDocRef = shoppingListRef.document(itemDocSnapshot.getId());
+            // Create a new Item object
+            Item newItem = new Item(itemName, Integer.parseInt(itemQuantity), Double.parseDouble(itemPrice));
 
-        // Delete the item from Firestore
-        itemDocRef.delete()
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(ShoppingListActivity.this, "Item deleted", Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> Toast.makeText(ShoppingListActivity.this, "Error deleting item", Toast.LENGTH_SHORT).show());
+            // Add item to Firestore
+            shoppingListRef.add(newItem)
+                    .addOnSuccessListener(documentReference -> {
+                        Toast.makeText(ShoppingListActivity.this, "Item added", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(ShoppingListActivity.this, "Error adding item", Toast.LENGTH_SHORT).show());
+        });
+
+        // Show the dialog
+        dialog.show();
     }
 }

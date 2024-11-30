@@ -5,16 +5,17 @@ public class Item {
     private int quantity;
     private double price;
 
-    // Default constructor required for Firestore
-    public Item() {
-    }
+    // Firestore requires an empty constructor
+    public Item() {}
 
+    // Constructor
     public Item(String name, int quantity, double price) {
         this.name = name;
         this.quantity = quantity;
         this.price = price;
     }
 
+    // Getter and Setter methods
     public String getName() {
         return name;
     }
