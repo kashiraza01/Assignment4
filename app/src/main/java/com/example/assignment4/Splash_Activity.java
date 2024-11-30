@@ -16,7 +16,6 @@ public class Splash_Activity extends AppCompatActivity {
 
         ImageView logo = findViewById(R.id.logo);
 
-        // Load the animations from the 'res/anim' folder
         Animation translate = AnimationUtils.loadAnimation(this, R.anim.translate_animation);
         Animation scale = AnimationUtils.loadAnimation(this, R.anim.scale_animation);
 
@@ -24,10 +23,10 @@ public class Splash_Activity extends AppCompatActivity {
         logo.startAnimation(translate);
         logo.startAnimation(scale);
 
-        // After the animation ends, go to the LoginActivity
+
         new Handler().postDelayed(() -> {
-            startActivity(new Intent(Splash_Activity.this, LoginActivity.class));
-            finish(); // Close the SplashActivity
+            startActivity(new Intent(Splash_Activity.this, Login_Activity.class));
+            finish();
         }, 2000); // Delay for 2 seconds (to give time for the animation)
     }
 }
