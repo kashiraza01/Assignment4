@@ -1,26 +1,28 @@
 package com.example.assignment4;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.appcompat.app.AlertDialog;
 
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.EventListener;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;  // For generating random ID
 
 public class ShoppingListActivity extends AppCompatActivity {
 
@@ -33,6 +35,15 @@ public class ShoppingListActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        FirebaseAuth mAuth = FirebaseAuth.getInstance();
+        if (mAuth.getCurrentUser() == null) {
+            // Handle the case where the user is not logged in
+            Toast.makeText(this, "Please sign in", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_shopping_list);
 
@@ -45,6 +56,12 @@ public class ShoppingListActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this)); // Set layout manager
         itemAdapter = new ItemAdapter(itemList);
         recyclerView.setAdapter(itemAdapter);
+
+        // Set the delete listener
+        itemAdapter.setOnItemDeleteListener(position -> {
+            // Call the deleteItem method
+            deleteItem(position);
+        });
 
         // Initialize Floating Action Button (FAB)
         fabAddItem = findViewById(R.id.fabAddItem);
@@ -65,6 +82,7 @@ public class ShoppingListActivity extends AppCompatActivity {
             for (DocumentSnapshot document : snapshots.getDocuments()) {
                 Item item = document.toObject(Item.class);
                 if (item != null) {
+                    item.setId(document.getId());  // Ensure the ID is set
                     itemList.add(item);
                 }
             }
@@ -77,13 +95,16 @@ public class ShoppingListActivity extends AppCompatActivity {
         shoppingListRef.get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        QuerySnapshot querySnapshot = task.getResult();
-                        itemList.clear();
-                        for (DocumentSnapshot document : querySnapshot) {
+                        itemList.clear();  // Clear list to prevent duplicates
+                        for (DocumentSnapshot document : task.getResult()) {
                             Item item = document.toObject(Item.class);
-                            itemList.add(item);
+                            if (item != null) {
+                                // Set a random ID for items fetched from Firestore (to make the ID unique on client-side)
+                                item.setId(UUID.randomUUID().toString());
+                                itemList.add(item);
+                            }
                         }
-                        itemAdapter.notifyDataSetChanged();
+                        itemAdapter.notifyDataSetChanged();  // Notify adapter to refresh view
                     } else {
                         Toast.makeText(ShoppingListActivity.this, "Error fetching data", Toast.LENGTH_SHORT).show();
                     }
@@ -114,12 +135,17 @@ public class ShoppingListActivity extends AppCompatActivity {
                 return;
             }
 
-            // Create a new Item object
+            // Create a new Item object with a random ID
             Item newItem = new Item(itemName, Integer.parseInt(itemQuantity), Double.parseDouble(itemPrice));
+            newItem.setId(UUID.randomUUID().toString());  // Set a random ID for the item
 
             // Add item to Firestore
             shoppingListRef.add(newItem)
                     .addOnSuccessListener(documentReference -> {
+                        // Add the item to the local list
+                        itemList.add(newItem);
+                        itemAdapter.notifyItemInserted(itemList.size() - 1);  // Notify the adapter
+
                         Toast.makeText(ShoppingListActivity.this, "Item added", Toast.LENGTH_SHORT).show();
                         dialog.dismiss();
                     })
@@ -129,4 +155,40 @@ public class ShoppingListActivity extends AppCompatActivity {
         // Show the dialog
         dialog.show();
     }
+
+    private void deleteItem(int position) {
+        Item itemToDelete = itemList.get(position);
+
+        // Ensure the item has a valid ID
+        if (itemToDelete.getId() == null || itemToDelete.getId().isEmpty()) {
+            Toast.makeText(ShoppingListActivity.this, "Item ID is null or empty, cannot delete", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Log the ID to ensure it's not null or empty
+        Log.d("ShoppingListActivity", "Deleting item with ID: " + itemToDelete.getId());
+
+        // Get the document reference for the item using its unique ID
+        DocumentReference docRef = shoppingListRef.document(itemToDelete.getId());
+
+        // Log the document reference
+        Log.d("ShoppingListActivity", "Document reference: " + docRef.getPath());
+
+        // Delete the item from Firestore
+        docRef.delete()
+                .addOnSuccessListener(aVoid -> {
+                    // Successfully deleted from Firestore
+                    itemList.remove(position); // Remove item from local list
+                    itemAdapter.notifyItemRemoved(position); // Notify adapter to remove item from view
+                    Toast.makeText(ShoppingListActivity.this, "Item deleted", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    // Handle failure
+                    Toast.makeText(ShoppingListActivity.this, "Error deleting item: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Log.e("ShoppingListActivity", "Error deleting item", e);
+                });
+    }
+
+
+
 }

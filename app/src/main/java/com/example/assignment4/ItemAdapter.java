@@ -5,11 +5,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
-
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.google.firebase.firestore.DocumentSnapshot;
-
 import java.util.List;
 
 public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder> {
@@ -48,7 +45,9 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
         holder.itemQuantityTextView.setText("Quantity: " + currentItem.getQuantity());
         holder.itemPriceTextView.setText("Price: $" + currentItem.getPrice());
 
+        // Set the delete button click listener
         holder.deleteButton.setOnClickListener(v -> {
+            // Check if listener is set, then call it
             if (onItemDeleteListener != null) {
                 onItemDeleteListener.onItemDelete(position);
             }
@@ -60,6 +59,7 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
         return itemList.size();
     }
 
+    // Set the listener in the activity
     public void setOnItemDeleteListener(OnItemDeleteListener listener) {
         this.onItemDeleteListener = listener;
     }
@@ -68,3 +68,4 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
         void onItemDelete(int position);
     }
 }
+
