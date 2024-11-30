@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">Assignment 4</string>
+    <string name="title_activity_login">Login_Activity</string>
+    <string name="app_logo">App Logo</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+    <string name="create_account">Create Account</string>
 </resources>
